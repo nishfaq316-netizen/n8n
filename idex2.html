@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposal Form</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f5f7fa; color: #333; margin: 0; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 30px; color: #1f2937; }
+  h2 { margin-bottom: 10px; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+  form { max-width: 1200px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+  label { display: block; margin-bottom: 5px; font-weight: 500; }
+  input[type="text"], input[type="email"], input[type="number"], select, textarea, input[type="date"] {
+    width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;
+  }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  table th, table td { border: 1px solid #e5e7eb; padding: 8px; text-align: center; vertical-align: middle; }
+  table th { background: #f3f4f6; }
+  table td select, table td input { width: 90%; padding: 5px; box-sizing: border-box; }
+  .add-row-btn, .remove-btn, .submit-btn { cursor: pointer; }
+  .add-row-btn { margin-top: 10px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: 500; transition: background 0.3s; }
+  .add-row-btn:hover { background: #1d4ed8; }
+  .remove-btn { padding: 5px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; font-weight: 500; transition: background 0.3s; }
+  .remove-btn:hover { background: #b91c1c; }
+  .submit-btn { margin-top: 20px; padding: 12px 25px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 16px; transition: background 0.3s; }
+  .submit-btn:hover { background: #059669; }
+  #jsonOutput { background: #1e1e1e; color: #0f0; padding: 20px; border-radius: 8px; font-family: Consolas, monospace; white-space: pre-wrap; max-width: 1200px; margin: 20px auto 0; overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1>Proposal Form</h1>
+
+<form id="proposalForm">
+  <div class="section">
+    <h2>Proposal Info</h2>
+    <label>Proposal ID</label>
+    <input type="text" name="proposal_id" readonly placeholder="Auto-generated ID">
+  </div>
+
+  <div class="section">
+    <h2>Customer Information</h2>
+    <label>First Name</label>
+    <input type="text" name="customer[first_name]" placeholder="First Name">
+    <label>Last Name</label>
+    <input type="text" name="customer[last_name]" placeholder="Last Name">
+    <label>Company</label>
+    <input type="text" name="customer[company]" placeholder="Company Name">
+    <label>Email</label>
+    <input type="email" name="customer[email]" placeholder="Email">
+  </div>
+
+  <div class="section">
+    <h2>Line Items</h2>
+    <table id="lineItemsTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Description</th>
+          <th>Quantity</th>
+          <th>Unit Cost</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button type="button" class="add-row-btn" onclick="addLineItemRow()">+ Add Line Item</button>
+  </div>
+
+  <div class="section">
+    <h2>Service Details</h2>
+    <label>Service Type</label>
+    <select name="service_details[service_type]">
+      <option value="">Select Service Type</option>
+      <option value="HVAC Repair">HVAC Repair</option>
+      <option value="Plumbing">Plumbing</option>
+      <option value="Electrical">Electrical</option>
+      <option value="General Maintenance">General Maintenance</option>
+    </select>
+    <label>Requested Date</label>
+    <input type="date" name="service_details[requested_date]">
+  </div>
+
+  <div class="section">
+    <h2>Travel Zone</h2>
+    <select name="travel_fee[zone]">
+      <option value="Zone 1">Zone 1</option>
+      <option value="Zone 2">Zone 2</option>
+      <option value="Zone 3">Zone 3</option>
+      <option value="Zone 4">Zone 4</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h2>Notes</h2>
+    <textarea name="notes" rows="4"></textarea>
+  </div>
+
+  <button type="submit" class="submit-btn">Submit Proposal</button>
+</form>
+
+<div id="jsonOutput">JSON output will appear here after submission.</div>
+
+<script>
+const itemPriceList = {
+  "Furnace Inspection": 120,
+  "Thermostat Installation": 150,
+  "Air Duct Cleaning": 80,
+  "AC Repair": 200,
+  "Filter Replacement": 50,
+  "Boiler Check": 100,
+  "Water Heater Repair": 180,
+  "Vent Cleaning": 90,
+  "Pipe Leak Fix": 110,
+  "Electrical Panel Upgrade": 250
+};
+
+let lineItemCount = 0;
+
+function generateProposalID() {
+  const date = new Date();
+  const formattedDate = date.toISOString().slice(0,10).replace(/-/g,'');
+  const randomNum = Math.floor(Math.random() * 900 + 100);
+  return `PROP-${formattedDate}-${randomNum}`;
+}
+
+function addLineItemRow() {
+  const table = document.querySelector("#lineItemsTable tbody");
+  lineItemCount++;
+  const rowIndex = lineItemCount - 1;
+  const newRow = table.insertRow();
+  newRow.innerHTML = `
+    <td>${lineItemCount}</td>
+    <td>
+      <select name="line_items[${rowIndex}][description]" onchange="updateUnitCost(this, ${rowIndex})">
+        <option value="">Select Item</option>
+        ${Object.keys(itemPriceList).map(item => `<option value="${item}">${item}</option>`).join('')}
+      </select>
+    </td>
+    <td><input type="number" name="line_items[${rowIndex}][quantity]" value="1" min="1"></td>
+    <td><input type="number" name="line_items[${rowIndex}][unit_cost]" value="0"></td>
+    <td><button type="button" class="remove-btn" onclick="removeRow(this)">Remove</button></td>
+  `;
+}
+
+function updateUnitCost(select, index) {
+  const selectedItem = select.value;
+  const unitCostInput = document.querySelector(`input[name="line_items[${index}][unit_cost]"]`);
+  unitCostInput.value = itemPriceList[selectedItem] || 0;
+}
+
+function removeRow(btn) {
+  btn.closest("tr").remove();
+  lineItemCount = document.querySelectorAll("#lineItemsTable tbody tr").length;
+  updateRowNumbers();
+}
+
+function updateRowNumbers() {
+  const rows = document.querySelectorAll("#lineItemsTable tbody tr");
+  rows.forEach((row, i) => {
+    row.cells[0].textContent = i + 1;
+    row.querySelectorAll("select, input").forEach(input => {
+      input.name = input.name.replace(/line_items\[\d+\]/, `line_items[${i}]`);
+    });
+  });
+}
+
+document.getElementById("proposalForm").addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const proposalIdInput = document.querySelector('input[name="proposal_id"]');
+  if (!proposalIdInput.value) proposalIdInput.value = generateProposalID();
+
+  const formData = new FormData(this);
+  const json = {};
+  const lineItems = [];
+
+  formData.forEach((value, key) => {
+    const keys = key.split(/[\[\]]+/).filter(k => k);
+    if (keys[0] === 'line_items') {
+      const index = parseInt(keys[1], 10);
+      const field = keys[2];
+      if (!lineItems[index]) lineItems[index] = { item: index + 1 };
+      lineItems[index][field] = field === 'quantity' || field === 'unit_cost' ? Number(value) : value;
+    } else {
+      let current = json;
+      keys.forEach((k, i) => {
+        if (i === keys.length - 1) current[k] = value;
+        else current[k] = current[k] || {}, current = current[k];
+      });
+    }
+  });
+
+  json['line_items'] = lineItems;
+
+  // -------------------------------
+  // SEND DATA TO N8N WEBHOOK HERE
+  // -------------------------------
+  fetch('https://auto.robogrowthpartners.com/webhook/proposal-form', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify([json])
+  })
+  .then(response => response.text())
+  .then(data => alert("Proposal submitted successfully!"))
+  .catch(error => {
+    console.error('Error:', error);
+    alert("Error submitting proposal. Check console for details.");
+  });
+
+  document.getElementById("jsonOutput").textContent = JSON.stringify([json], null, 4);
+});
+</script>
+</body>
+</html>
